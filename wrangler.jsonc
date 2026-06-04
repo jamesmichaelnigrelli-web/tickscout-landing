@@ -1,0 +1,12 @@
+{
+  // Cloudflare Workers config for the TickScout landing page (static assets only).
+  // Deployed automatically by Workers Builds on every push to `main`.
+  // The `name` MUST match the existing Worker so the custom domain
+  // (tickscouthq.com) and the workers.dev URL are preserved.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "tickscout-landing",
+  "compatibility_date": "2026-06-04",
+  "assets": {
+    "directory": "./public"
+  }
+}
