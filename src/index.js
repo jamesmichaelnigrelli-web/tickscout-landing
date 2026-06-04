@@ -4,6 +4,26 @@
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Cache the resolved publication id for the life of the isolate to avoid an
+// extra Beehiiv call on every subscribe.
+let cachedPublicationId = null;
+
+async function getPublicationId(env) {
+  // Prefer an explicit secret/var if provided.
+  if (env.BEEHIIV_PUBLICATION_ID) return env.BEEHIIV_PUBLICATION_ID;
+  if (cachedPublicationId) return cachedPublicationId;
+
+  // Otherwise discover it from the API key (uses the first publication).
+  const resp = await fetch("https://api.beehiiv.com/v2/publications", {
+    headers: { Authorization: "Bearer " + env.BEEHIIV_API_KEY },
+  });
+  if (!resp.ok) return null;
+  const body = await resp.json();
+  const id = body && body.data && body.data[0] && body.data[0].id;
+  if (id) cachedPublicationId = id;
+  return id || null;
+}
+
 function json(obj, status = 200) {
   return new Response(JSON.stringify(obj), {
     status,
@@ -46,14 +66,24 @@ async function handleSubscribe(request, env) {
     return json({ ok: false, error: "Please enter a valid email address." }, 400);
   }
 
-  if (!env.BEEHIIV_API_KEY || !env.BEEHIIV_PUBLICATION_ID) {
-    // Misconfiguration: secrets not set yet.
+  if (!env.BEEHIIV_API_KEY) {
+    // Misconfiguration: API key secret not set yet.
+    return json({ ok: false, error: "Signup is temporarily unavailable." }, 503);
+  }
+
+  let publicationId;
+  try {
+    publicationId = await getPublicationId(env);
+  } catch {
+    return json({ ok: false, error: "Signup is temporarily unavailable." }, 503);
+  }
+  if (!publicationId) {
     return json({ ok: false, error: "Signup is temporarily unavailable." }, 503);
   }
 
   const endpoint =
     "https://api.beehiiv.com/v2/publications/" +
-    encodeURIComponent(env.BEEHIIV_PUBLICATION_ID) +
+    encodeURIComponent(publicationId) +
     "/subscriptions";
 
   let resp;
