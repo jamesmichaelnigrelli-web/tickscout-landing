@@ -278,6 +278,13 @@
       font-size: 13px;
       color: rgba(168, 213, 181, 0.7);
     }
+    .signup-status {
+      margin-top: 16px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--accent);
+    }
+    .signup-status[hidden] { display: none; }
 
     /* ===== FOOTER ===== */
     footer {
@@ -398,11 +405,12 @@
       <div class="signup-card">
         <h2>Be the first to know when we launch.</h2>
         <p class="sub">Early access, tick safety tips, and product updates. No spam.</p>
-        <form class="signup-form" action="https://tickscout.beehiiv.com/subscribe" method="post" target="_blank" rel="noopener">
-          <input type="email" name="email" placeholder="you@example.com" required autocomplete="email" />
+        <form id="signupForm" class="signup-form" novalidate>
+          <input id="signupEmail" type="email" name="email" placeholder="you@example.com" required autocomplete="email" />
           <button type="submit" class="btn">Notify Me</button>
         </form>
-        <p class="signup-note">Join the waitlist — we'll email you the moment TickScout goes live.</p>
+        <p id="signupNote" class="signup-note">Join the waitlist — we'll email you the moment TickScout goes live.</p>
+        <p id="signupStatus" class="signup-status" role="status" aria-live="polite" hidden>Redirecting you to complete signup…</p>
       </div>
     </section>
 
@@ -431,5 +439,31 @@
     </footer>
 
   </div>
+
+  <script>
+    (function () {
+      var form = document.getElementById('signupForm');
+      if (!form) return;
+      var emailInput = document.getElementById('signupEmail');
+      var note = document.getElementById('signupNote');
+      var status = document.getElementById('signupStatus');
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var email = (emailInput.value || '').trim();
+        // Basic validation; rely on the input's native check for the rest.
+        if (!email || !emailInput.checkValidity()) {
+          emailInput.reportValidity();
+          return;
+        }
+        // Show the redirect message, then send the user to Beehiiv with email prefilled.
+        if (note) note.hidden = true;
+        if (status) status.hidden = false;
+        emailInput.blur();
+        var dest = 'https://tickscout.beehiiv.com/?email=' + encodeURIComponent(email);
+        setTimeout(function () { window.location.href = dest; }, 900);
+      });
+    })();
+  </script>
 </body>
 </html>
