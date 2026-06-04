@@ -1,12 +1,18 @@
 {
-  // Cloudflare Workers config for the TickScout landing page (static assets only).
-  // Deployed automatically by Workers Builds on every push to `main`.
-  // The `name` MUST match the existing Worker so the custom domain
-  // (tickscouthq.com) and the workers.dev URL are preserved.
+  // Cloudflare Worker for the TickScout landing page.
+  // Serves static assets from ./public AND a server-side /api/subscribe endpoint
+  // that adds emails to Beehiiv. Deployed automatically by Workers Builds on push.
+  // `name` MUST match the existing Worker so tickscouthq.com stays attached.
+  //
+  // Required secrets (set in the dashboard, NOT in git):
+  //   BEEHIIV_API_KEY          - Beehiiv API key
+  //   BEEHIIV_PUBLICATION_ID   - Beehiiv publication id (e.g. pub_xxxxxxxx-...)
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "tickscout-landing",
+  "main": "src/index.js",
   "compatibility_date": "2026-06-04",
   "assets": {
-    "directory": "./public"
+    "directory": "./public",
+    "binding": "ASSETS"
   }
 }

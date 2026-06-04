@@ -285,6 +285,7 @@
       color: var(--accent);
     }
     .signup-status[hidden] { display: none; }
+    .signup-status.error { color: #f87171; }
 
     /* ===== FOOTER ===== */
     footer {
@@ -410,7 +411,7 @@
           <button type="submit" class="btn">Notify Me</button>
         </form>
         <p id="signupNote" class="signup-note">Join the waitlist — we'll email you the moment TickScout goes live.</p>
-        <p id="signupStatus" class="signup-status" role="status" aria-live="polite" hidden>Redirecting you to complete signup…</p>
+        <p id="signupStatus" class="signup-status" role="status" aria-live="polite" hidden></p>
       </div>
     </section>
 
@@ -448,6 +449,15 @@
       var note = document.getElementById('signupNote');
       var status = document.getElementById('signupStatus');
 
+      var button = form.querySelector('button[type="submit"]');
+
+      function showStatus(msg, isError) {
+        if (note) note.hidden = true;
+        status.hidden = false;
+        status.textContent = msg;
+        status.classList.toggle('error', !!isError);
+      }
+
       form.addEventListener('submit', function (e) {
         e.preventDefault();
         var email = (emailInput.value || '').trim();
@@ -456,12 +466,38 @@
           emailInput.reportValidity();
           return;
         }
-        // Show the redirect message, then send the user to Beehiiv with email prefilled.
-        if (note) note.hidden = true;
-        if (status) status.hidden = false;
-        emailInput.blur();
-        var dest = 'https://tickscout.beehiiv.com/?email=' + encodeURIComponent(email);
-        setTimeout(function () { window.location.href = dest; }, 900);
+
+        var originalLabel = button.textContent;
+        button.disabled = true;
+        button.textContent = 'Submitting…';
+        showStatus('Adding you to the list…', false);
+
+        fetch('/api/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email })
+        })
+          .then(function (resp) {
+            return resp.json().catch(function () { return {}; }).then(function (data) {
+              return { ok: resp.ok, data: data };
+            });
+          })
+          .then(function (res) {
+            if (res.ok && res.data && res.data.ok) {
+              form.hidden = true;
+              showStatus("You're on the list ✓ Check your inbox to confirm.", false);
+            } else {
+              var msg = (res.data && res.data.error) ? res.data.error : 'Something went wrong. Please try again.';
+              button.disabled = false;
+              button.textContent = originalLabel;
+              showStatus(msg, true);
+            }
+          })
+          .catch(function () {
+            button.disabled = false;
+            button.textContent = originalLabel;
+            showStatus('Network error. Please try again.', true);
+          });
       });
     })();
   </script>
